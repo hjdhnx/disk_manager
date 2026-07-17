@@ -47,16 +47,22 @@ function showToast(msg, type = 'info') {
   toastTimer = setTimeout(() => (toast.value = null), 3200)
 }
 
-async function loadDisks() {
+async function loadDisks(keep = false) {
   try {
-    disks.value = await api.listDisks()
-    if (!currentDisk.value) {
-      const sys = disks.value.find(d => d.is_system)
-      currentDisk.value = sys ? sys.mount : (disks.value[0]?.mount || 'C:\\')
+    const list = await api.listDisks()
+    disks.value = list
+    if (!keep || !currentDisk.value || !list.find(d => d.mount === currentDisk.value)) {
+      const sys = list.find(d => d.is_system)
+      currentDisk.value = sys ? sys.mount : (list[0]?.mount || 'C:\\')
     }
   } catch (e) {
     showToast('读取磁盘信息失败：' + e, 'error')
   }
+}
+
+async function refreshDisks() {
+  await loadDisks(true)
+  showToast('磁盘信息已刷新')
 }
 
 function selectDisk(m) {
@@ -121,7 +127,7 @@ function onChildToast(msg, type) {
   showToast(msg, type)
 }
 async function onChildRefreshed() {
-  await loadDisks()
+  await loadDisks(true)
 }
 
 function fmtSize(n) {
@@ -161,6 +167,9 @@ provide('fmtMs', fmtMs)
         <input v-model.number="minSizeMB" type="number" min="1" step="10"
           style="width:72px;padding:7px 8px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text);font-size:13px" />
         <label style="font-size:12px;color:var(--text-3)">MB</label>
+        <button class="btn ghost sm" @click="refreshDisks" :disabled="scanning" title="刷新磁盘容量信息">
+          ⟳ 刷新磁盘
+        </button>
         <select v-model="currentDisk" @change="selectDisk(currentDisk)" class="disk-sel">
           <option v-for="d in disks" :key="d.mount" :value="d.mount">
             {{ d.mount }} ({{ (d.used / 1024 / 1024 / 1024).toFixed(0) }}GB / {{ (d.total / 1024 / 1024 / 1024).toFixed(0) }}GB){{ d.is_system ? ' 系统' : '' }}
