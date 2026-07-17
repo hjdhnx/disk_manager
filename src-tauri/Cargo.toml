@@ -33,6 +33,3 @@ lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
-# 打包后的 exe 链接为 Windows GUI 子系统，避免运行时弹出多余的命令行窗口
-# dev(debug) 构建不启用，保留控制台输出方便排查
-windows_subsystem = "windows"
